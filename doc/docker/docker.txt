@@ -2,3 +2,11 @@
 기본적으로 도커는 리눅스 위에서 동작하는 컨테이너이므로 실제로는 가상머신에 설치가 되는 것
 mac 버전 도커 설치
 https://docs.docker.com/desktop/mac/install/
+
+docker ubuntu install
+
+docker pull ubuntu # 버전 안적으면 최신 버전 설치 됨
+
+docker run <사용할 이미지>
+
+
