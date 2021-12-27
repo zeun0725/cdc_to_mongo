@@ -1,0 +1,27 @@
+version: '3'
+services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+    - 9017:27017 # 컨테이너 외부 : 컨테이너 내부
+    environment:
+      MONGO_INITDB_ROOT_USERNAME : root
+      MONGO_INITDB_ROOT_PASSWORD : root
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+    - 9018:8081
+    environment:
+      ME_CONFIG_MMONGODBURL: mongodb://root:root@host.docker.internal:9017/
+    depends_on:
+      - mongo
+  mysql:
+    image: mysql
+    restart: always
+    ports:
+    - 3307:3306
+    environment:
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: root_user
