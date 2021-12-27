@@ -1,5 +1,11 @@
 version: '3'
 services:
+#  ubuntu:
+#    image: ubuntu
+#    ports:
+#    - 8083:8083
+#    stdin_open: true
+#    tty: true
   mongodb:
     image: mongo
     restart: always
@@ -29,7 +35,7 @@ services:
     ports:
       - 3307:3306
     environment:
-      MYSQL_ROOT_PASSWORD: root_user
+      MYSQL_ROOT_PASSWORD: root_mysql
     command: # 명령어 실행
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci

@@ -1,3 +1,12 @@
 # admin 계정 비밀번호 변경
 ALTER USER 'root'@'localhost' iDENTIFIED BY '비밀번호';
 
+# db, table 생성
+CREATE DATABASE zeun default CHARACTER SET UTF8;
+
+CREATE TABLE prod (
+prod_no INT PRIMARY KEY AUTO_INCREMENT,
+prod_nm VARCHAR(50) NOT NULL,
+d_cate_cd VARCHAR(10) DEFAULT '0',
+use_yn VARCHAR(1) DEFAULT 'N'
+) ENGINE=INNODB; DESCRIBE prod;
