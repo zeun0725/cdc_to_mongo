@@ -3,3 +3,5 @@
 ---
 #### DEV INFO
 ##### DOCKER, MYSQL , KAFKA , MONGODB
+
+![cdc](https://user-images.githubusercontent.com/26589907/147485027-e10eb271-638b-43ad-a82c-0a2fcfd871f2.png)
