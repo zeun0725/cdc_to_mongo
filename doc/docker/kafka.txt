@@ -1,0 +1,10 @@
+카프카는 주키퍼에 의존적
+
+# 토픽 생성
+./opt/kafka_2.13-2.8.1/bin/kafka-topics.sh --create --bootstrap-server localho
+st:9092 --replication-factor 1 --partitions 3 --topic test
+
+# 토픽 조회
+./opt/kafka_2.13-2.8.1/bin/kafka-topics.sh --list --bootstrap-server localho
+st:9092
+./opt/kafka_2.13-2.8.1/bin/kafka-topics.sh --list --zookeeper localhost
