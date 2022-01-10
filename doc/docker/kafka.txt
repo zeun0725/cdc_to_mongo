@@ -8,3 +8,5 @@ st:9092 --replication-factor 1 --partitions 3 --topic test
 ./opt/kafka_2.13-2.8.1/bin/kafka-topics.sh --list --bootstrap-server localho
 st:9092
 ./opt/kafka_2.13-2.8.1/bin/kafka-topics.sh --list --zookeeper localhost
+
+# 카프카 포트포워딩 문제 해결하기
