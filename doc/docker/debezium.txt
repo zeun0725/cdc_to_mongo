@@ -1,0 +1,2 @@
+# https://debezium.io/documentation/reference/1.4/tutorial.html#starting-kafka
+
