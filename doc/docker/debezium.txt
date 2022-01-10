@@ -1,2 +1,47 @@
 # https://debezium.io/documentation/reference/1.4/tutorial.html#starting-kafka
 
+에러 발생
+[Consumer clientId=consumer-1, groupId=consumer-spark] Connection to node -1 could not be established. Broker may not be available.
+=> 주키퍼에 아래 옵션들 추가해 주니 에러 안남
+KAFKA_ADVERTISED_PORT: 9092
+KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+KAFKA_LISTENERS: PLAINTEXT://:9092
+
+
+Registering a connector to monitor the inventory database
+By registering the Debezium MySQL connector, the connector will start monitoring the MySQL database server’s binlog.
+The binlog records all of the database’s transactions (such as changes to individual rows and changes to the schemas).
+When a row in the database changes, Debezium generates a change event.
+
+restAPI로 커넥터 등록
+curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" localhost:8083/connectors/ -d '{
+  "name": "prod-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "mysql",
+    "database.port": "3306",
+    "database.user": "connect",
+    "database.password": "connect",
+    "database.server.id": "184054",
+    "database.server.name": "cdc_mysql",
+    "database.include.list": "zeun",
+    "database.allowPublicKeyRetrieval": "true",
+    "database.history.kafka.bootstrap.servers": "kafka:9092",
+    "database.history.kafka.topic": "zeundbhistory.prod",
+    "database.serverTimezone": "Asia/Seoul"
+  }
+}'
+
+# RestAPI 등록 시 에러 발생
+로그 파악 => Caused by: com.mysql.cj.exceptions.UnableToConnectException: Public Key Retrieval is not allowed
+문제 원인 => Mysql 세팅 문제
+문제 해결 => curl 할 때 "database.allowPublicKeyRetrieval":"true" 도 넣어줌
+
+# Access denied 발생
+문제 원인 => connect 서버 호스트가 127.19.0.7 인데 애를 Mysql 서버에서 막는 것 같음
+문제 해결 => 유저 하나 만들어줌 root 사용 안하고
+create user 'connect'@'172.19.%' identified by 'connect';
+
+
+
