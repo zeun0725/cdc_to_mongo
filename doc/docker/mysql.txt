@@ -10,3 +10,12 @@ prod_nm VARCHAR(50) NOT NULL,
 d_cate_cd VARCHAR(10) DEFAULT '0',
 use_yn VARCHAR(1) DEFAULT 'N'
 ) ENGINE=INNODB; DESCRIBE prod;
+
+prod table data insert
+
+INSERT INTO prod VALUES
+(3, 'test3', 100, 'Y'),
+(4, 'test4', 100, 'Y'),
+(5, 'test5', 100, 'Y'),
+(6, 'test6', 100, 'Y'),
+(7, 'test7', 100, 'Y');

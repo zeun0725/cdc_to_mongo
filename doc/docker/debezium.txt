@@ -1,2 +1,14 @@
 # https://debezium.io/documentation/reference/1.4/tutorial.html#starting-kafka
 
+에러 발생
+[Consumer clientId=consumer-1, groupId=consumer-spark] Connection to node -1 could not be established. Broker may not be available.
+=> 주키퍼에 아래 옵션들 추가해 주니 에러 안남
+KAFKA_ADVERTISED_PORT: 9092
+KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+KAFKA_LISTENERS: PLAINTEXT://:9092
+
+
+Registering a connector to monitor the inventory database
+By registering the Debezium MySQL connector, the connector will start monitoring the MySQL database server’s binlog.
+The binlog records all of the database’s transactions (such as changes to individual rows and changes to the schemas).
+When a row in the database changes, Debezium generates a change event.
