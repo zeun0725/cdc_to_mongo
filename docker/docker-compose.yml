@@ -44,8 +44,13 @@ services:
     environment:
       KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://:9092
   connect:
     image: debezium/connect
+    depends_on:
+      - kafka
     ports:
     - 8083:8083
     environment:
