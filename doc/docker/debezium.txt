@@ -12,3 +12,20 @@ Registering a connector to monitor the inventory database
 By registering the Debezium MySQL connector, the connector will start monitoring the MySQL database server’s binlog.
 The binlog records all of the database’s transactions (such as changes to individual rows and changes to the schemas).
 When a row in the database changes, Debezium generates a change event.
+
+{
+  "name": "inventory-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "mysql",
+    "database.port": "3306",
+    "database.user": "root",
+    "database.password": "root_mysql",
+    "database.server.id": "184054",
+    "database.server.name": "cdc_mysql",
+    "database.include.list": "zeun",
+    "database.history.kafka.bootstrap.servers": "kafka:9092",
+    "database.history.kafka.topic": "schema-changes.inventory"
+  }
+}
