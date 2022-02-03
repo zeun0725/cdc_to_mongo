@@ -13,8 +13,9 @@ By registering the Debezium MySQL connector, the connector will start monitoring
 The binlog records all of the database’s transactions (such as changes to individual rows and changes to the schemas).
 When a row in the database changes, Debezium generates a change event.
 
-{
-  "name": "inventory-connector",
+restAPI로 커넥터 등록
+curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" localhost:8083/connectors/ -d '{
+  "name": "prod-connector",
   "config": {
     "connector.class": "io.debezium.connector.mysql.MySqlConnector",
     "tasks.max": "1",
@@ -25,7 +26,19 @@ When a row in the database changes, Debezium generates a change event.
     "database.server.id": "184054",
     "database.server.name": "cdc_mysql",
     "database.include.list": "zeun",
+    "database.allowPublicKeyRetrieval": "true",
     "database.history.kafka.bootstrap.servers": "kafka:9092",
-    "database.history.kafka.topic": "schema-changes.inventory"
+    "database.history.kafka.topic": "zeundbhistory.prod",
+    "database.serverTimezone": "Asia/Seoul"
   }
-}
+}'
+
+# RestAPI 등록 시 에러 발생
+로그 파악 => Caused by: com.mysql.cj.exceptions.UnableToConnectException: Public Key Retrieval is not allowed
+문제 원인 => Mysql 세팅 문제
+문제 해결 => curl 할 때 "database.allowPublicKeyRetrieval":"true" 도 넣어줌
+
+# Access denied 발생
+connect 서버 호스트가 127.19.0.7 인데 애를 Mysql 서버에서 막는 것 같음
+
+
