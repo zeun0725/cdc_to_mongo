@@ -19,3 +19,11 @@ INSERT INTO prod VALUES
 (5, 'test5', 100, 'Y'),
 (6, 'test6', 100, 'Y'),
 (7, 'test7', 100, 'Y');
+
+# 사용자 추가
+create user 'connect'@'172.19.%' identified by 'connect';
+# 생성된 사용자 계정 권한 설정
+GRANT ALL ON [database명].[table명] TO [user명]@[server명];
+GRANT ALL PRIVILEGES ON *.* TO 'connect'@'172.19.%' WITH GRANT OPTION;
+# 계정 권한 새로 로드
+FLUSH PRIVILEGES;

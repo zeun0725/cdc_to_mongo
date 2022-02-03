@@ -21,8 +21,8 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
     "tasks.max": "1",
     "database.hostname": "mysql",
     "database.port": "3306",
-    "database.user": "root",
-    "database.password": "root_mysql",
+    "database.user": "connect",
+    "database.password": "connect",
     "database.server.id": "184054",
     "database.server.name": "cdc_mysql",
     "database.include.list": "zeun",
@@ -39,6 +39,9 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
 문제 해결 => curl 할 때 "database.allowPublicKeyRetrieval":"true" 도 넣어줌
 
 # Access denied 발생
-connect 서버 호스트가 127.19.0.7 인데 애를 Mysql 서버에서 막는 것 같음
+문제 원인 => connect 서버 호스트가 127.19.0.7 인데 애를 Mysql 서버에서 막는 것 같음
+문제 해결 => 유저 하나 만들어줌 root 사용 안하고
+create user 'connect'@'172.19.%' identified by 'connect';
+
 
 
