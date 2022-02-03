@@ -27,3 +27,6 @@ GRANT ALL ON [database명].[table명] TO [user명]@[server명];
 GRANT ALL PRIVILEGES ON *.* TO 'connect'@'172.19.%' WITH GRANT OPTION;
 # 계정 권한 새로 로드
 FLUSH PRIVILEGES;
+
+INSERT INTO prod VALUES
+(8, 'test8', 100, 'N');
