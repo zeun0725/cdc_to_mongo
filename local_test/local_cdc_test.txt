@@ -1,0 +1,256 @@
+1.kafka 설치
+ - /Users/we/kafka_2.12-2.8.0
+
+2.kafka connector 에 debezium mysql plug-in 설치
+ - /Users/we/kafka_2.12-2.8.0/connectors/debezium-connector-mysql
+ - stable version : https://debezium.io/releases/1.9/
+ - MySQL Connector Plug-in 선택하여 다운로드
+ - 현재 사용하고 있는 version: 1.5.4
+
+
+3.시작
+3.1.zookeeper 시작
+  - bin/zookeeper-server-start.sh -daemon config/zookeeper.properties
+  - bin/zookeeper-server-start.sh config/zookeeper.properties
+3.2.kafka 시작
+	- vim server.properties 해서 delete.topic.enable=true 세팅
+  - bin/kafka-server-start.sh -daemon config/server.properties
+  - bin/kafka-server-start.sh config/server.properties
+3.3.kafka connector 시작
+* error 발생함 *
+org.apache.kafka.common.config.ConfigException: Topic 'connect-offsets' supplied via the 'offset.storage.topic' property is required to have 'cleanup.policy=compact' to guarantee consistency and durability of source connector offsets, but found the topic currently has 'cleanup.policy=delete'. Continuing would likely result in eventually losing source connector offsets and problems restarting this Connect cluster in the future. Change the 'offset.storage.topic' property in the Connect worker configurations to use a topic with 'cleanup.policy=compact'.
+==> 해결법 (cleanup.policy 추가해주기)
+bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name connect-offsets --alter --add-config cleanup.policy=compact
+====================
+플러그인 위치(커넥터 위치) 알려줘야 함
+vim config/connect-distributed.properties 한 뒤 plugin.path=/Users/we/kafka_2.12-2.8.0/connectors 추가하기
+  - bin/connect-distributed.sh -daemon config/connect-distributed.properties
+  - bin/connect-distributed.sh config/connect-distributed.properties
+
+
+4. Mysql DB 세팅
+4.1.mysql 설치
+4.2.binlog 남기도록 설정
+4.3.계정에 SELECT, RELOAD, SUPER, REPLICATION SLAVE, REPLICATION CLIENT 권한 부여 필요
+ - create user zeun@'%' identified by 'xxxx';
+ - grant SELECT, RELOAD, SUPER, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'zeun'@'%' with grant option;
+ - ALTER USER 'zeun'@'%' IDENTIFIED WITH mysql_native_password BY 'xxxx';
+ - flush privileges;
+4.4.DATABASE 생성, TABLE 생성
+ - Database : test
+ - Table : t
+ - create table t ( id int not null auto_increment, comment varchar(100), primary key(id) );
+ - show columns from t;
+4.5.server_id 확인
+  - select @@server_id;
+
+5. kafka topic 생성
+5.1.kafka topic 확인
+ - /Users/we/kafka_2.12-2.8.0/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+ - __consumer_offsets, connect-configs, connect-offsets,  3개 topic 자동 생성됨
+
+5.2.자동 생성 되나 partition 개수 및 복제 개수, 압축 방법을 지정하기 위해서 미리 생성 작업 수행
+ - bin/kafka-topics.sh  --create --bootstrap-server localhost:9092 --topic cdc_mysql_index --partitions 1 --replication-factor 1
+ - bin/kafka-topics.sh  --create --bootstrap-server localhost:9092 --topic schema.cdc_mysql_index --partitions 1 --replication-factor 1
+ - bin/kafka-topics.sh  --create --bootstrap-server localhost:9092 --topic cdc_mysql_index.test.t --partitions 3 --replication-factor 1
+5.3.kafka topic 확인
+ - bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+5.4.partition 수
+ - connect_configs, cdc_mysql_index, schema.cdc_mysql_index  -> partition 1개
+ - __consumer_offsets(현재 50개), connect-status(현재 5개), connect-offsets(현재 25개) 는 kafka 성능에 맞게 partition 개수 조정 필요
+ - cdc_mysql_index.test.t -> kafka 성능에 맞게 partition 개수 조정
+
+6.connector 확인 및 debezium 설정 attach
+6.1.접속 확인
+ - curl http://localhost:8083
+6.2.debezium 설정 확인 및 적용
+ - attach.cnf
+{
+    "name":"cdc_mysql_index",
+    "config": {
+        "connector.class":"io.debezium.connector.mysql.MySqlConnector",
+        "snapshot.locking.mode":"none",
+        "message.key.columns":"test.t:id",
+        "tasks.max":"1",
+        "database.history.kafka.topic":"schema.cdc_mysql_index",
+        "decimal.handling.mode":"string",
+        "poll.interval.ms":"1000",
+        "database.history.skip.unparseable.ddl":"false",
+        "value.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "key.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "database.user":"zeun",
+        "database.server.id":"1",
+        "database.history.kafka.bootstrap.servers":"localhost:9092",
+        "database.server.name":"cdc_mysql_index",
+        "database.port":"3306",
+        "key.converter.schemas.enable":"false",
+        "task.class":"io.debezium.connector.mysql.MySqlConnectorTask",
+        "database.serverTimezone":"Asia/Seoul",
+        "database.hostname":"localhost",
+        "database.password":"xxxx",
+        "value.converter.schemas.enable":"false",
+        "name":"cdc_mysql_index",
+        "max.batch.size":"1024",
+        "table.include.list":"test.t",
+        "database.include.list":"test",
+        "snapshot.mode":"when_needed"
+    }
+}
+ - ./attach.sh
+curl -X POST -H "Content-Type:application/json" http://localhost:8083/connectors/ -d '{
+    "name":"cdc_mysql_index",
+    "config": {
+        "connector.class":"io.debezium.connector.mysql.MySqlConnector",
+        "snapshot.locking.mode":"none",
+        "message.key.columns":"test.t:id",
+        "tasks.max":"1",
+        "database.history.kafka.topic":"schema.cdc_mysql_index",
+        "decimal.handling.mode":"string",
+        "poll.interval.ms":"1000",
+        "database.history.skip.unparseable.ddl":"false",
+        "value.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "key.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "database.user":"zeun",
+        "database.server.id":"1",
+        "database.history.kafka.bootstrap.servers":"localhost:9092",
+        "database.server.name":"cdc_mysql_index",
+        "key.converter.schemas.enable":"false",
+        "task.class":"io.debezium.connector.mysql.MySqlConnectorTask",
+        "database.serverTimezone":"Asia/Seoul",
+        "database.hostname":"localhost",
+        "database.password":"xxxx",
+        "value.converter.schemas.enable":"false",
+        "name":"cdc_mysql_index",
+        "max.batch.size":"1024",
+        "table.include.list":"test.t",
+        "database.include.list":"test",
+        "snapshot.mode":"when_needed"
+    }
+}'
+6.3.설정 확인
+ - curl -X GET http://localhost:8083/connectors/cdc_mysql_index
+6.4.상태 확인
+  - curl -X GET http://localhost:8083/connectors/cdc_mysql_index/status
+6.5.pause
+ - curl -X PUT http://localhost:8083/connectors/cdc_mysql_index/pause
+6.6.resume
+ - curl -X PUT http://localhost:8083/connectors/cdc_mysql_index/resume
+6.7.restart
+ - curl -X POST http://localhost:8083/connectors/cdc_mysql_index/restart
+6.8.taks restart
+ - curl -X POST http://localhost:8083/connectors/cdc_mysql_index/tasks/0/restart
+
+7. mysql 에 데이터 넣어보고 카프카 토픽으로 데이터 들어오는 부분 확인
+7.1.test.t 테이블 컨슈밍
+ - bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic cdc_mysql_index.test.t
+7.2.데이터 생성, 수정, 삭제
+ - insert into t (comment) values ('comment1');
+   -> {"before":null,"after":{"id":1,"comment":"comment1"},"source":{"version":"1.5.4.Final","connector":"mysql","name":"cdc_mysql_index","ts_ms":1655779166000,"snapshot":"false","db":"test","sequence":null,"table":"t","server_id":1,"gtid":null,"file":"binlog.000009","pos":1412,"row":0,"thread":null,"query":null},"op":"c","ts_ms":1655779166820,"transaction":null}
+ - update t set comment='comment2' where id = 1;
+   -> {"before":{"id":1,"comment":"comment1"},"after":{"id":1,"comment":"comment2"},"source":{"version":"1.5.4.Final","connector":"mysql","name":"cdc_mysql_index","ts_ms":1655779189000,"snapshot":"false","db":"test","sequence":null,"table":"t","server_id":1,"gtid":null,"file":"binlog.000009","pos":1711,"row":0,"thread":null,"query":null},"op":"u","ts_ms":1655779189170,"transaction":null}
+ - delete from t where id = 1;
+   -> {"before":{"id":1,"comment":"comment2"},"after":null,"source":{"version":"1.5.4.Final","connector":"mysql","name":"cdc_mysql_index","ts_ms":1655779195000,"snapshot":"false","db":"test","sequence":null,"table":"t","server_id":1,"gtid":null,"file":"binlog.000009","pos":2017,"row":0,"thread":null,"query":null},"op":"d","ts_ms":1655779195928,"transaction":null}
+7.3.mysql bin log 위치
+ - /usr/local/var/mysql
+
+8. 테이블 추가하는 방법
+8.1.mysql 에 test.t2 테이블 생성
+ - create table t2 ( id1 varchar(100), id2 varchar(100), primary key(id1, id2) );
+ - show columns from t2;
+8.2.debezium 설정 파일 update.cnf 설정
+{
+    "name":"cdc_mysql_index",
+    "config": {
+        "connector.class":"io.debezium.connector.mysql.MySqlConnector",
+        "snapshot.locking.mode":"none",
+        "message.key.columns":"test.t:id;test.t2:id1,id2",
+        "tasks.max":"1",
+        "database.history.kafka.topic":"schema.cdc_mysql_index",
+        "decimal.handling.mode":"string",
+        "poll.interval.ms":"1000",
+        "database.history.skip.unparseable.ddl":"false",
+        "value.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "key.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "database.user":"zeun",
+        "database.server.id":"1",
+        "database.history.kafka.bootstrap.servers":"localhost:9092",
+        "database.server.name":"cdc_mysql_index",
+        "database.port":"3306",
+        "key.converter.schemas.enable":"false",
+        "task.class":"io.debezium.connector.mysql.MySqlConnectorTask",
+        "database.serverTimezone":"Asia/Seoul",
+        "database.hostname":"localhost",
+        "database.password":"xxxx",
+        "value.converter.schemas.enable":"false",
+        "name":"cdc_mysql_index",
+        "max.batch.size":"1024",
+        "table.include.list":"test.t,test.t2",
+        "database.include.list":"test",
+        "snapshot.mode":"when_needed"
+    }
+}
+8.3.debezium 업데이트 실행
+ - ./update.sh
+update는 connectors/{connect_name}/config 를 직접 put 으로 바꿔주기에 커넥트 네임이 필요 없음 <처음 create와 모양이 좀 다름>
+curl -X PUT -H "Content-Type:application/json" http://localhost:8083/connectors/cdc_mysql_index/config -d '{
+        "connector.class":"io.debezium.connector.mysql.MySqlConnector",
+        "snapshot.locking.mode":"none",
+        "message.key.columns":"test.t:id;test.t2:id1,id2",
+        "tasks.max":"1",
+        "database.history.kafka.topic":"schema.cdc_mysql_index",
+        "decimal.handling.mode":"string",
+        "poll.interval.ms":"1000",
+        "database.history.skip.unparseable.ddl":"false",
+        "value.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "key.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "database.user":"zeun",
+        "database.server.id":"1",
+        "database.history.kafka.bootstrap.servers":"localhost:9092",
+        "database.server.name":"cdc_mysql_index",
+        "database.port":"3306",
+        "key.converter.schemas.enable":"false",
+        "task.class":"io.debezium.connector.mysql.MySqlConnectorTask",
+        "database.serverTimezone":"Asia/Seoul",
+        "database.hostname":"localhost",
+        "database.password":"xxxx",
+        "value.converter.schemas.enable":"false",
+        "name":"cdc_mysql_index",
+        "max.batch.size":"1024",
+        "table.include.list":"test.t,test.t2",
+        "database.include.list":"test",
+        "snapshot.mode":"when_needed"
+}'
+8.4.test.t2 테이블 컨슈밍
+ - bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic cdc_mysql_index.test.t2
+8.5.mysql 에 데이터 넣어 보기
+ - insert into t2 values ( '1', '2' );
+
+
+9. 지정한 binlog position 부터 cdc 를 다시 해 오고 싶은 경우
+9.1. 참고 URL
+ - https://debezium.io/documentation/faq/#how_to_change_the_offsets_of_the_source_database
+9.2. debezium 중지
+ - curl -X PUT localhost:8083/connectors/cdc_mysql_index/pause
+9.3.kafka 커넥터 중지
+ - bin/connect-distributed.sh config/connect-distributed.properties => 얘 중지 시켜야 됨
+9.4. 돌아가고 싶은 offset 파악
+ - 가장 마지막을 볼 수 있는 다른 방법을 찾아야 함(kcat, kafkacat 등)
+brew install kcat
+ - kcat -b 127.0.0.1:9092 -C -t connect-offsets -f 'Partition(%p) %k %s\n'
+9.5. connect-offsets 토픽에 돌아가고자 하는 offset 지정
+ - echo '["cdc_mysql_index",{"server":"cdc_mysql_index"}]|{"ts_sec":1655779195,"file":"binlog.000009","pos":1887}' | kcat -P -b 127.0.0.1:9092 -t connect-offsets -K \| -p 23
+ - offset 이 잘 세팅 되었는지 확인
+  - kcat -b 127.0.0.1:9092 -C -t connect-offsets -f 'Partition(%p) %k %s\n'
+9.6. kafka 커넥터 재시작
+ - bin/connect-distributed.sh config/connect-distributed.properties
+9.7. debezium resume
+ - test.t 테이블 consuming 확인
+  - bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic cdc_mysql_index.test.t
+ - 상태 확인
+  - curl -XGET localhost:8083/connectors/cdc_mysql_index/status
+ - 재시작
+  - curl -XPUT localhost:8083/connectors/cdc_mysql_index/resume
+
+10. snapshot.mode -> 좀 더 알아봐야 함
+ - https://debezium.io/documentation/reference/stable/connectors/mysql.html#mysql-property-snapshot-mode
+ - 현재 시스템에 적용 된 mode 는 when_needed
